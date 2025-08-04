@@ -43,3 +43,62 @@
     yield-strategy-id: (optional uint)
   }
 )
+
+(define-map pool-providers
+  { pool-id: uint, provider: principal }
+  { liquidity-tokens: uint }
+)
+
+(define-map user-deposits
+  { user: principal, token: principal }
+  { amount: uint, last-deposit-time: uint }
+)
+
+(define-map yield-strategies
+  { strategy-id: uint }
+  {
+    name: (string-ascii 32),
+    target-token: principal,
+    apy-estimate: uint,
+    risk-level: uint,
+    is-active: bool,
+    protocol: (string-ascii 32),
+    min-lock-period: uint,
+    rewards-token: (optional principal)
+  }
+)
+
+(define-map route-configuration
+  { route-id: uint }
+  {
+    name: (string-ascii 32),
+    path: (list 10 uint),
+    is-optimized: bool
+  }
+)
+
+(define-map user-referrals
+  { user: principal }
+  { referrer: principal, fees-earned: uint }
+)
+
+(define-map token-whitelist
+  { token: principal }
+  { is-whitelisted: bool, decimals: uint }
+)
+
+;; Counters
+(define-data-var next-pool-id uint u1)
+(define-data-var next-strategy-id uint u1)
+(define-data-var next-route-id uint u1)
+
+;; Protocol status functions
+(define-read-only (get-protocol-status)
+  {
+    paused: (var-get protocol-paused),
+    fee-bps: (var-get protocol-fee-bps),
+    treasury: (var-get treasury-address),
+    referral-fee-bps: (var-get referral-fee-bps),
+    fees-accumulated: (var-get protocol-fees-accumulated)
+  }
+)
