@@ -607,3 +607,76 @@
     (ok token)
   )
 )
+
+(define-public (update-token-price (token principal) (new-price uint))
+  (let
+    (
+      (oracle (unwrap! (map-get? price-oracles { token: token }) ERR-ORACLE-NOT-FOUND))
+    )
+    (asserts! (is-eq tx-sender (get oracle-address oracle)) ERR-NOT-AUTHORIZED)
+    (asserts! (get is-active oracle) ERR-ORACLE-NOT-FOUND)
+    
+    (map-set price-oracles
+      { token: token }
+      (merge oracle { 
+        price: new-price,
+        last-update-time: stacks-block-height
+      })
+    )
+    (ok new-price)
+  )
+)
+
+(define-read-only (get-token-price (token principal))
+  (default-to u100000000 ;; Default price if oracle not found
+    (get price (map-get? price-oracles { token: token })))
+)
+
+(define-read-only (is-price-fresh (token principal) (max-age uint))
+  (let
+    (
+      (oracle (map-get? price-oracles { token: token }))
+    )
+    (match oracle
+      oracle-data (< (- stacks-block-height (get last-update-time oracle-data)) max-age)
+      false
+    )
+  )
+)
+
+;; YIELD FARMING & STAKING
+(define-public (create-farming-pool
+  (name (string-ascii 32))
+  (staking-token principal)
+  (reward-token principal)
+  (reward-rate uint)
+  (duration uint)
+)
+  (let
+    (
+      (farm-id (var-get next-farm-id))
+      (start-time stacks-block-height)
+      (end-time (+ stacks-block-height duration))
+    )
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+    (asserts! (is-token-whitelisted staking-token) ERR-INVALID-TOKEN)
+    (asserts! (is-token-whitelisted reward-token) ERR-INVALID-TOKEN)
+    
+    (map-set farming-pools
+      { farm-id: farm-id }
+      {
+        name: name,
+        staking-token: staking-token,
+        reward-token: reward-token,
+        total-staked: u0,
+        reward-rate: reward-rate,
+        start-time: start-time,
+        end-time: end-time,
+        is-active: true
+      }
+    )
+    
+    (var-set next-farm-id (+ farm-id u1))
+    (ok farm-id)
+  )
+)
