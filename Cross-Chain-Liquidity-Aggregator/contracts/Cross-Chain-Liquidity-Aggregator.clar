@@ -327,3 +327,49 @@
     is-active: bool
   }
 )
+
+(define-map user-loans
+  { loan-id: uint }
+  {
+    borrower: principal,
+    collateral-token: principal,
+    collateral-amount: uint,
+    borrowed-token: principal,
+    borrowed-amount: uint,
+    interest-rate: uint,
+    liquidation-price: uint,
+    creation-time: uint,
+    is-active: bool
+  }
+)
+
+(define-map user-supplies
+  { user: principal, token: principal }
+  {
+    amount: uint,
+    earned-interest: uint,
+    last-update-time: uint
+  }
+)
+
+(define-map price-oracles
+  { token: principal }
+  {
+    price: uint,
+    decimals: uint,
+    last-update-time: uint,
+    oracle-address: principal,
+    is-active: bool
+  }
+)
+
+(define-map oracle-feeds
+  { feed-id: uint }
+  {
+    name: (string-ascii 32),
+    token: principal,
+    data-source: (string-ascii 64),
+    update-frequency: uint,
+    is-verified: bool
+  }
+)
