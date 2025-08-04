@@ -148,4 +148,49 @@
   )
 )
 
+(define-read-only (is-token-whitelisted (token principal))
+  (default-to false (get is-whitelisted (map-get? token-whitelist { token: token })))
+)
+
+;; Pool management functions
+(define-read-only (get-pool (pool-id uint))
+  (map-get? liquidity-pools { pool-id: pool-id })
+)
+
+(define-read-only (get-pool-count)
+  (- (var-get next-pool-id) u1)
+)
+
+(define-public (set-pool-active-status (pool-id uint) (is-active bool))
+  (let
+    (
+      (pool (unwrap! (map-get? liquidity-pools { pool-id: pool-id }) ERR-POOL-NOT-FOUND))
+    )
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+    
+    (map-set liquidity-pools
+      { pool-id: pool-id }
+      (merge pool { is-active: is-active })
+    )
+    (ok is-active)
+  )
+)
+
+(define-public (update-pool-fee (pool-id uint) (new-fee-bps uint))
+  (let
+    (
+      (pool (unwrap! (map-get? liquidity-pools { pool-id: pool-id }) ERR-POOL-NOT-FOUND))
+    )
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+    (asserts! (<= new-fee-bps u1000) ERR-INVALID-FEE-BPS) ;; Max 10% fee
+    
+    (map-set liquidity-pools
+      { pool-id: pool-id }
+      (merge pool { fee-bps: new-fee-bps })
+    )
+    (ok new-fee-bps)
+  )
+)
+
+
 
