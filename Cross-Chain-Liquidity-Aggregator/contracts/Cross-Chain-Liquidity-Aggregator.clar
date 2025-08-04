@@ -282,3 +282,48 @@
   )
 )
 
+;; User position and analytics functions
+(define-read-only (get-user-liquidity-position (user principal) (pool-id uint))
+  (map-get? pool-providers { pool-id: pool-id, provider: user })
+)
+
+(define-read-only (get-user-deposit (user principal) (token principal))
+  (map-get? user-deposits { user: user, token: token })
+)
+
+;; NEW ERROR CONSTANTS
+(define-constant ERR-LOAN-NOT-FOUND (err u115))
+(define-constant ERR-INSUFFICIENT-COLLATERAL (err u116))
+(define-constant ERR-LIQUIDATION-THRESHOLD-REACHED (err u117))
+(define-constant ERR-ORACLE-NOT-FOUND (err u118))
+(define-constant ERR-STALE-PRICE (err u119))
+(define-constant ERR-FARMING-NOT-ACTIVE (err u120))
+(define-constant ERR-LOCK-PERIOD-NOT-EXPIRED (err u121))
+(define-constant ERR-GOVERNANCE-PROPOSAL-NOT-FOUND (err u122))
+(define-constant ERR-VOTING-PERIOD-ENDED (err u123))
+(define-constant ERR-INSUFFICIENT-VOTING-POWER (err u124))
+(define-constant ERR-INSURANCE-CLAIM-REJECTED (err u125))
+(define-constant ERR-NFT-NOT-FOUND (err u126))
+(define-constant ERR-CROSS-CHAIN-BRIDGE-PAUSED (err u127))
+
+;; NEW DATA VARIABLES
+(define-data-var total-loans-issued uint u0)
+(define-data-var total-collateral-locked uint u0)
+(define-data-var governance-proposal-counter uint u0)
+(define-data-var total-staked-tokens uint u0)
+(define-data-var insurance-pool-balance uint u0)
+(define-data-var cross-chain-nonce uint u0)
+
+;; NEW MAPS
+(define-map lending-pools
+  { token: principal }
+  {
+    total-supplied: uint,
+    total-borrowed: uint,
+    supply-rate: uint,
+    borrow-rate: uint,
+    collateral-factor: uint,
+    liquidation-threshold: uint,
+    is-active: bool
+  }
+)
