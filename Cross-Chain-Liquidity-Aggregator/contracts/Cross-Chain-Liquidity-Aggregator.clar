@@ -680,3 +680,66 @@
     (ok farm-id)
   )
 )
+
+(define-public (stake-in-farm (farm-id uint) (amount uint) (lock-period uint))
+  (let
+    (
+      (farm (unwrap! (map-get? farming-pools { farm-id: farm-id }) ERR-POOL-NOT-FOUND))
+      (current-stake (default-to { staked-amount: u0, reward-debt: u0, last-stake-time: u0, lock-end-time: u0 }
+                      (map-get? user-stakes { user: tx-sender, farm-id: farm-id })))
+    )
+    (asserts! (get is-active farm) ERR-FARMING-NOT-ACTIVE)
+    (asserts! (> amount u0) ERR-INVALID-AMOUNT)
+    (asserts! (<= stacks-block-height (get end-time farm)) ERR-DEADLINE-PASSED)
+    
+    (map-set user-stakes
+      { user: tx-sender, farm-id: farm-id }
+      {
+        staked-amount: (+ (get staked-amount current-stake) amount),
+        reward-debt: u0,
+        last-stake-time: stacks-block-height,
+        lock-end-time: (+ stacks-block-height lock-period)
+      }
+    )
+    
+    (map-set farming-pools
+      { farm-id: farm-id }
+      (merge farm { total-staked: (+ (get total-staked farm) amount) })
+    )
+    
+    (var-set total-staked-tokens (+ (var-get total-staked-tokens) amount))
+    (ok amount)
+  )
+)
+
+(define-public (unstake-from-farm (farm-id uint) (amount uint))
+  (let
+    (
+      (farm (unwrap! (map-get? farming-pools { farm-id: farm-id }) ERR-POOL-NOT-FOUND))
+      (user-stake (unwrap! (map-get? user-stakes { user: tx-sender, farm-id: farm-id }) ERR-INSUFFICIENT-BALANCE))
+    )
+    (asserts! (>= (get staked-amount user-stake) amount) ERR-INSUFFICIENT-BALANCE)
+    (asserts! (>= stacks-block-height (get lock-end-time user-stake)) ERR-LOCK-PERIOD-NOT-EXPIRED)
+    
+    (map-set user-stakes
+      { user: tx-sender, farm-id: farm-id }
+      (merge user-stake { staked-amount: (- (get staked-amount user-stake) amount) })
+    )
+    
+    (map-set farming-pools
+      { farm-id: farm-id }
+      (merge farm { total-staked: (- (get total-staked farm) amount) })
+    )
+    
+    (var-set total-staked-tokens (- (var-get total-staked-tokens) amount))
+    (ok amount)
+  )
+)
+
+(define-read-only (get-farming-pool (farm-id uint))
+  (map-get? farming-pools { farm-id: farm-id })
+)
+
+(define-read-only (get-user-stake (user principal) (farm-id uint))
+  (map-get? user-stakes { user: user, farm-id: farm-id })
+)
