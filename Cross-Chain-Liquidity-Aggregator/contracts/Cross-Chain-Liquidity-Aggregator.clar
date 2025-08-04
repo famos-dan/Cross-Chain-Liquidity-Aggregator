@@ -102,3 +102,50 @@
     fees-accumulated: (var-get protocol-fees-accumulated)
   }
 )
+
+(define-public (set-protocol-paused (paused bool))
+  (begin
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+    (ok (var-set protocol-paused paused))
+  )
+)
+
+(define-public (set-protocol-fee (fee-bps uint))
+  (begin
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+    (asserts! (<= fee-bps u1000) ERR-INVALID-FEE-BPS) ;; Max 10% fee
+    (ok (var-set protocol-fee-bps fee-bps))
+  )
+)
+
+(define-public (set-referral-fee (fee-bps uint))
+  (begin
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+    (asserts! (<= fee-bps u500) ERR-INVALID-FEE-BPS) ;; Max 5% referral fee
+    (ok (var-set referral-fee-bps fee-bps))
+  )
+)
+
+(define-public (set-treasury-address (new-address principal))
+  (begin
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+    (ok (var-set treasury-address new-address))
+  )
+)
+
+;; Token whitelist management
+(define-public (whitelist-token (token principal) (decimals uint))
+  (begin
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+    (ok (map-set token-whitelist { token: token } { is-whitelisted: true, decimals: decimals }))
+  )
+)
+
+(define-public (remove-token-from-whitelist (token principal))
+  (begin
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+    (ok (map-set token-whitelist { token: token } { is-whitelisted: false, decimals: u0 }))
+  )
+)
+
+
