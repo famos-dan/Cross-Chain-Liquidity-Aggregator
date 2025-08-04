@@ -192,5 +192,61 @@
   )
 )
 
+(define-read-only (get-route (route-id uint))
+  (map-get? route-configuration { route-id: route-id })
+)
+
+(define-private (calculate-output-for-pool (pool-id uint) (prev-amount uint))
+  (let
+    (
+      (pool (unwrap-panic (map-get? liquidity-pools { pool-id: pool-id })))
+      (reserve-a (get reserve-a pool))
+      (reserve-b (get reserve-b pool))
+      (fee-bps (get fee-bps pool))
+      (amount-in-with-fee (* prev-amount (- u10000 fee-bps)))
+      (numerator (* amount-in-with-fee reserve-b))
+      (denominator (+ (* reserve-a u10000) amount-in-with-fee))
+    )
+    (/ numerator denominator)
+  )
+)
+
+;; Yield strategy functions
+(define-public (create-yield-strategy
+  (name (string-ascii 32))
+  (target-token principal)
+  (apy-estimate uint)
+  (risk-level uint)
+  (protocol (string-ascii 32))
+  (min-lock-period uint)
+  (rewards-token (optional principal))
+)
+  (let
+    (
+      (strategy-id (var-get next-strategy-id))
+    )
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+    (asserts! (is-token-whitelisted target-token) ERR-INVALID-TOKEN)
+    (asserts! (<= risk-level u10) ERR-INVALID-AMOUNT) ;; Risk scale from 0-10
+    
+    (map-set yield-strategies
+      { strategy-id: strategy-id }
+      {
+        name: name,
+        target-token: target-token,
+        apy-estimate: apy-estimate,
+        risk-level: risk-level,
+        is-active: true,
+        protocol: protocol,
+        min-lock-period: min-lock-period,
+        rewards-token: rewards-token
+      }
+    )
+    
+    (var-set next-strategy-id (+ strategy-id u1))
+    (ok strategy-id)
+  )
+)
+
 
 
